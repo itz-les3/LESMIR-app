@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>💛 Our Safe Space</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      background: linear-gradient(to right, #ffd6e0, #ffe5b4);
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+    }
+    textarea, select, input {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+    }
+    button {
+      padding: 10px;
+      margin: 5px;
+      cursor: pointer;
+    }
+    .message {
+      background: white;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 10px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>💛 Our Safe Space</h1>
+  <p>A place where we understand each other, not fight.</p>
+
+  <input id="code" placeholder="Enter private code">
+  <button onclick="join()">Enter</button>
+
+  <div id="app" style="display:none;">
+    <select id="user">
+      <option>Me</option>
+      <option>Her</option>
+    </select>
+
+    <select id="mood">
+      <option>Happy</option>
+      <option>Upset</option>
+      <option>Confused</option>
+      <option>Neutral</option>
+    </select>
+
+    <textarea id="message" placeholder="Say it calmly..."></textarea>
+
+    <button onclick="suggest()">🧠 Rephrase</button>
+    <button onclick="sendMessage()">Send</button>
+
+    <div id="messages"></div>
+
+    <h3>📈 Relationship Health</h3>
+    <p id="health">0%</p>
+
+    <h3>🎯 Conflict Guide</h3>
+    <p>1. What happened?</p>
+    <p>2. How do I feel?</p>
+    <p>3. What do I need?</p>
+    <p>4. Solution?</p>
+  </div>
+</div>
+
+<script>
+  // 🔐 PRIVATE CODE
+  const inviteCode = "LOVE123";
+
+  function join() {
+    const code = document.getElementById("code").value;
+    if (code === inviteCode) {
+      document.getElementById("app").style.display = "block";
+    } else {
+      alert("Wrong code");
+    }
+  }
+
+  // 🔥 FIREBASE CONFIG (PUT YOURS HERE)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_DOMAIN",
+    projectId: "YOUR_PROJECT_ID"
+  };
+
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // 📩 SEND MESSAGE
+  function sendMessage() {
+    const text = document.getElementById("message").value;
+    const user = document.getElementById("user").value;
+    const mood = document.getElementById("mood").value;
+
+    db.collection("messages").add({
+      text,
+      user,
+      mood,
+      date: new Date().toLocaleString()
+    });
+
+    document.getElementById("message").value = "";
+  }
+
+  // 📡 REAL-TIME MESSAGES
+  db.collection("messages").onSnapshot(snapshot => {
+    let html = "";
+    let happyCount = 0;
+
+    snapshot.forEach(doc => {
+      const msg = doc.data();
+      if (msg.mood === "Happy") happyCount++;
+
+      html += `
+        <div class="message">
+          <b>${msg.user} • ${msg.mood}</b>
+          <p>${msg.text}</p>
+          <small>${msg.date}</small>
+        </div>
+      `;
+    });
+
+    document.getElementById("messages").innerHTML = html;
+
+    const total = snapshot.size;
+    const score = total ? Math.round((happyCount / total) * 100) : 0;
+    document.getElementById("health").innerText = score + "%";
+  });
+
+  // 🧠 SIMPLE AI REPHRASE (basic for now)
+  function suggest() {
+    const text = document.getElementById("message").value;
+    document.getElementById("message").value =
+      "I feel that " + text + " and I’d like us to understand each other better.";
+  }
+</script>
+
+</body>
+</html>
