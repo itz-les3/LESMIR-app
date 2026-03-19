@@ -1,95 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>💛 Our Safe Space</title>
- <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<meta charset="UTF-8">
+<title>💛 Our Safe Space</title>
+
+<!-- Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-  <style>
-    body {
-      font-family: Arial;
-      background: linear-gradient(to right, #ffd6e0, #ffe5b4);
-      padding: 20px;
-      text-align: center;
-    }
-    .container {
-      max-width: 500px;
-      margin: auto;
-    }
-    textarea, select, input {
-      width: 100%;
-      padding: 10px;
-      margin: 5px 0;
-    }
-    button {
-      padding: 10px;
-      margin: 5px;
-      cursor: pointer;
-    }
-    .message {
-      background: white;
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 10px;
-      text-align: left;
-    }
-  </style>
+
+<style>
+body {
+  font-family: Arial;
+  background: linear-gradient(to right, #ffd6e0, #ffe5b4);
+  padding: 20px;
+  margin: 0;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+}
+
+h1, p {
+  text-align: center;
+}
+
+textarea, select, input {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 10px;
+  margin: 5px 2px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #ff4d6d;
+  color: white;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+/* Chat container */
+#messages {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* Chat bubbles */
+.message {
+  max-width: 70%;
+  padding: 10px;
+  margin: 5px;
+  border-radius: 15px;
+  animation: fadeIn 0.3s ease;
+}
+
+.me {
+  background: #ff4d6d;
+  color: white;
+  margin-left: auto;
+  text-align: right;
+}
+
+.her {
+  background: white;
+  margin-right: auto;
+  text-align: left;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
 </head>
+
 <body>
 
 <div class="container">
-  <h1>💛 Our Safe Space</h1>
-  <p>A place where we understand each other, not fight.</p>
 
-  <input id="code" placeholder="Enter private code">
-  <button onclick="join()">Enter</button>
+<h1>💛 Our Safe Space</h1>
+<p>A place where we understand each other, not fight.</p>
+<p style="font-style: italic; color: gray;">
+“It’s not me vs you, it’s us vs the problem.”
+</p>
 
-  <div id="app" style="display:none;">
-    <select id="user">
-      <option>Me</option>
-      <option>Her</option>
-    </select>
+<input id="code" placeholder="Enter private code">
+<button onclick="join()">Enter</button>
 
-    <select id="mood">
-      <option>Happy</option>
-      <option>Upset</option>
-      <option>Confused</option>
-      <option>Neutral</option>
-    </select>
+<div id="app" style="display:none;">
 
-    <textarea id="message" placeholder="Say it calmly..."></textarea>
+<select id="user">
+  <option>Me</option>
+  <option>Her</option>
+</select>
 
-    <button onclick="suggest()">🧠 Rephrase</button>
-    <button onclick="sendMessage()">Send</button>
+<select id="mood">
+  <option>Happy 😊</option>
+  <option>Upset 😔</option>
+  <option>Confused 😕</option>
+  <option>Neutral 😐</option>
+</select>
 
-    <div id="messages"></div>
+<textarea id="message" placeholder="Say it calmly..."
+oninput="showTyping()" onblur="hideTyping()"></textarea>
 
-    <h3>📈 Relationship Health</h3>
-    <p id="health">0%</p>
+<p id="typing" style="font-size:12px;color:gray;"></p>
 
-    <h3>🎯 Conflict Guide</h3>
-    <p>1. What happened?</p>
-    <p>2. How do I feel?</p>
-    <p>3. What do I need?</p>
-    <p>4. Solution?</p>
-  </div>
+<button onclick="suggest()">🧠 Rephrase</button>
+<button onclick="quickAppreciation()">❤️ Appreciate</button>
+<button onclick="sendMessage(this)">Send</button>
+
+<div id="messages"></div>
+
+<h3>📈 Relationship Health</h3>
+<p id="health">0%</p>
+
+<h3>🎯 Conflict Guide</h3>
+<p>1. What happened?</p>
+<p>2. How do I feel?</p>
+<p>3. What do I need?</p>
+<p>4. Solution?</p>
+
+</div>
 </div>
 
 <script>
-  // 🔐 PRIVATE CODE
-  const inviteCode = "LOVE123";
+// 🔐 PRIVATE CODE
+const inviteCode = "LOVE123";
 
-  function join() {
-    const code = document.getElementById("code").value;
-    if (code === inviteCode) {
-      document.getElementById("app").style.display = "block";
-    } else {
-      alert("Wrong code");
-    }
+// JOIN
+function join() {
+  const code = document.getElementById("code").value;
+  if (code === inviteCode) {
+    document.getElementById("app").style.display = "block";
+  } else {
+    alert("Wrong code");
   }
+}
 
-  // 🔥 FIREBASE CONFIG (PUT YOURS HERE)
- const firebaseConfig = {
+// 🔥 FIREBASE CONFIG (YOURS ADDED)
+const firebaseConfig = {
   apiKey: "AIzaSyByPtGUddTNWVsEByuUlxEVfsSjOrSPOW8",
   authDomain: "lesmir-app.firebaseapp.com",
   projectId: "lesmir-app",
@@ -99,57 +158,99 @@
   measurementId: "G-BWNLL1P35F"
 };
 
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  const app = firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+// 🧠 SIMPLE AI REPHRASE (NO API ISSUES)
+function suggest() {
+  const text = document.getElementById("message").value;
+  if (!text.trim()) return;
 
-  // 📩 SEND MESSAGE
-  function sendMessage() {
-    const text = document.getElementById("message").value;
-    const user = document.getElementById("user").value;
-    const mood = document.getElementById("mood").value;
+  let better = "I feel that " + text;
 
-    db.collection("messages").add({
-      text,
-      user,
-      mood,
-      date: new Date().toLocaleString()
-    });
-
-    document.getElementById("message").value = "";
+  if (!text.toLowerCase().includes("feel")) {
+    better += ", and I’d like us to understand each other better.";
   }
 
-  // 📡 REAL-TIME MESSAGES
-  db.collection("messages").onSnapshot(snapshot => {
+  document.getElementById("message").value = better;
+}
+
+// ❤️ QUICK APPRECIATION
+function quickAppreciation() {
+  document.getElementById("message").value =
+    "I just want to say I appreciate you ❤️";
+}
+
+// 💬 TYPING INDICATOR
+function showTyping() {
+  document.getElementById("typing").innerText = "Typing...";
+}
+function hideTyping() {
+  document.getElementById("typing").innerText = "";
+}
+
+// 🚀 SEND MESSAGE
+let sending = false;
+
+async function sendMessage(btn) {
+  if (sending) return;
+
+  const text = document.getElementById("message").value;
+  if (!text.trim()) return;
+
+  sending = true;
+  btn.innerText = "Sending...";
+
+  const user = document.getElementById("user").value;
+  const mood = document.getElementById("mood").value;
+
+  await db.collection("messages").add({
+    text,
+    user,
+    mood,
+    date: new Date().toISOString()
+  });
+
+  document.getElementById("message").value = "";
+  btn.innerText = "Send";
+  sending = false;
+}
+
+// 📡 REAL-TIME MESSAGES
+db.collection("messages")
+  .orderBy("date")
+  .limit(50)
+  .onSnapshot(snapshot => {
+
     let html = "";
-    let happyCount = 0;
+    let happy = 0;
 
     snapshot.forEach(doc => {
       const msg = doc.data();
-      if (msg.mood === "Happy") happyCount++;
+      if (msg.mood.includes("Happy")) happy++;
+
+      const side = msg.user === "Me" ? "me" : "her";
 
       html += `
-        <div class="message">
+        <div class="message ${side}">
           <b>${msg.user} • ${msg.mood}</b>
           <p>${msg.text}</p>
-          <small>${msg.date}</small>
+          <small>${new Date(msg.date).toLocaleTimeString()}</small>
         </div>
       `;
     });
 
     document.getElementById("messages").innerHTML = html;
 
+    // auto-scroll
+    const box = document.getElementById("messages");
+    box.scrollTop = box.scrollHeight;
+
+    // health score
     const total = snapshot.size;
-    const score = total ? Math.round((happyCount / total) * 100) : 0;
+    const score = total ? Math.round((happy / total) * 100) : 0;
     document.getElementById("health").innerText = score + "%";
   });
-
-  // 🧠 SIMPLE AI REPHRASE (basic for now)
-  function suggest() {
-    const text = document.getElementById("message").value;
-    document.getElementById("message").value =
-      "I feel that " + text + " and I’d like us to understand each other better.";
-  }
 </script>
 
 </body>
