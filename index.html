@@ -4,81 +4,43 @@
 <meta charset="UTF-8">
 <title>💛 Our Safe Space</title>
 
-<!-- Firebase v8 -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body {
   font-family: Arial;
   background: linear-gradient(to right, #ffd6e0, #ffe5b4);
   padding: 20px;
-  margin: 0;
 }
 
-.container {
-  max-width: 500px;
-  margin: auto;
-}
+.container { max-width: 700px; margin: auto; }
 
-h1, p {
-  text-align: center;
-}
-
-textarea, select, input {
-  width: 100%;
-  padding: 10px;
-  margin: 5px 0;
-  border-radius: 10px;
-  border: 1px solid #ccc;
+input, textarea, select {
+  width: 100%; padding: 10px; margin: 5px 0; border-radius: 10px;
 }
 
 button {
-  padding: 10px;
-  margin: 5px 2px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  background: #ff4d6d;
-  color: white;
+  padding: 10px; border-radius: 10px;
+  background: #ff4d6d; color: white; border: none;
 }
 
-button:hover {
-  opacity: 0.9;
-}
+#messages { max-height: 250px; overflow-y: auto; }
 
-/* Chat container */
-#messages {
-  max-height: 300px;
-  overflow-y: auto;
-  padding: 10px;
-}
+.message { max-width: 70%; padding: 10px; margin: 5px; border-radius: 15px; }
+.me { background: #ff4d6d; color: white; margin-left: auto; }
+.her { background: white; margin-right: auto; }
 
-/* Chat bubbles */
-.message {
-  max-width: 70%;
-  padding: 10px;
-  margin: 5px;
-  border-radius: 15px;
-  animation: fadeIn 0.3s ease;
-}
-
-.me {
-  background: #ff4d6d;
-  color: white;
-  margin-left: auto;
-  text-align: right;
-}
-
-.her {
+.section {
   background: white;
-  margin-right: auto;
-  text-align: left;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  padding: 10px;
+  border-radius: 10px;
+  margin-top: 10px;
 }
 </style>
 </head>
@@ -87,170 +49,165 @@ button:hover {
 
 <div class="container">
 
-<h1>💛 Our Safe Space</h1>
-<p>A place where we understand each other, not fight.</p>
-<p style="font-style: italic; color: gray;">
-“It’s not me vs you, it’s us vs the problem.”
-</p>
+<h2>💛 Our Safe Space</h2>
 
-<input id="code" placeholder="Enter private code">
-<button onclick="join()">Enter</button>
+<!-- LOGIN -->
+<div id="login">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <button onclick="signup()">Sign Up</button>
+</div>
 
+<!-- APP -->
 <div id="app" style="display:none;">
 
-<select id="user">
-  <option>Me</option>
-  <option>Her</option>
-</select>
+<p id="welcome"></p>
 
 <select id="mood">
-  <option>Happy 😊</option>
-  <option>Upset 😔</option>
-  <option>Confused 😕</option>
-  <option>Neutral 😐</option>
+  <option value="1">Upset 😔</option>
+  <option value="2">Confused 😕</option>
+  <option value="3">Neutral 😐</option>
+  <option value="4">Happy 😊</option>
 </select>
 
-<textarea id="message" placeholder="Say it calmly..."
-oninput="showTyping()" onblur="hideTyping()"></textarea>
-
-<p id="typing" style="font-size:12px;color:gray;"></p>
-
-<button onclick="suggest()">🧠 Rephrase</button>
-<button onclick="quickAppreciation()">❤️ Appreciate</button>
-<button onclick="sendMessage(this)">Send</button>
+<textarea id="message"></textarea>
+<button onclick="sendMessage()">Send</button>
 
 <div id="messages"></div>
 
-<h3>📈 Relationship Health</h3>
-<p id="health">0%</p>
+<!-- 📈 MOOD CHART -->
+<div class="section">
+  <h3>📈 Mood Trend</h3>
+  <canvas id="chart"></canvas>
+</div>
 
-<h3>🎯 Conflict Guide</h3>
-<p>1. What happened?</p>
-<p>2. How do I feel?</p>
-<p>3. What do I need?</p>
-<p>4. Solution?</p>
+<!-- ❤️ WEEKLY SUMMARY -->
+<div class="section">
+  <h3>❤️ Weekly Review</h3>
+  <button onclick="generateSummary()">Generate Summary</button>
+  <p id="summary"></p>
+</div>
+
+<!-- 🤖 AI COACH -->
+<div class="section">
+  <h3>🤖 Relationship Coach</h3>
+  <textarea id="aiInput" placeholder="Describe the issue..."></textarea>
+  <button onclick="askAI()">Get Advice</button>
+  <p id="aiResponse"></p>
+</div>
+
+<button onclick="logout()">Logout</button>
 
 </div>
 </div>
 
 <script>
-// 🔐 PRIVATE CODE
-const inviteCode = "LOVE123";
-
-// JOIN
-function join() {
-  const code = document.getElementById("code").value;
-  if (code === inviteCode) {
-    document.getElementById("app").style.display = "block";
-  } else {
-    alert("Wrong code");
-  }
-}
-
-// 🔥 FIREBASE CONFIG (YOURS ADDED)
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyByPtGUddTNWVsEByuUlxEVfsSjOrSPOW8",
   authDomain: "lesmir-app.firebaseapp.com",
-  projectId: "lesmir-app",
-  storageBucket: "lesmir-app.firebasestorage.app",
-  messagingSenderId: "1046767059034",
-  appId: "1:1046767059034:web:bc5ad3b3e767ba2e495863",
-  measurementId: "G-BWNLL1P35F"
+  projectId: "lesmir-app"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 
-// 🧠 SIMPLE AI REPHRASE (NO API ISSUES)
-function suggest() {
-  const text = document.getElementById("message").value;
-  if (!text.trim()) return;
+let moodData = [];
 
-  let better = "I feel that " + text;
+// AUTH
+function signup(){ auth.createUserWithEmailAndPassword(email.value, password.value); }
+function login(){ auth.signInWithEmailAndPassword(email.value, password.value); }
+function logout(){ auth.signOut(); }
 
-  if (!text.toLowerCase().includes("feel")) {
-    better += ", and I’d like us to understand each other better.";
+auth.onAuthStateChanged(user=>{
+  if(user){
+    login.style.display="none";
+    app.style.display="block";
+    welcome.innerText=user.email;
+    loadMessages(user);
+  } else {
+    login.style.display="block";
+    app.style.display="none";
   }
+});
 
-  document.getElementById("message").value = better;
-}
-
-// ❤️ QUICK APPRECIATION
-function quickAppreciation() {
-  document.getElementById("message").value =
-    "I just want to say I appreciate you ❤️";
-}
-
-// 💬 TYPING INDICATOR
-function showTyping() {
-  document.getElementById("typing").innerText = "Typing...";
-}
-function hideTyping() {
-  document.getElementById("typing").innerText = "";
-}
-
-// 🚀 SEND MESSAGE
-let sending = false;
-
-async function sendMessage(btn) {
-  if (sending) return;
-
-  const text = document.getElementById("message").value;
-  if (!text.trim()) return;
-
-  sending = true;
-  btn.innerText = "Sending...";
-
-  const user = document.getElementById("user").value;
-  const mood = document.getElementById("mood").value;
-
-  await db.collection("messages").add({
-    text,
-    user,
-    mood,
+// SEND MESSAGE
+function sendMessage(){
+  db.collection("messages").add({
+    text: message.value,
+    mood: Number(mood.value),
+    user: auth.currentUser.email,
     date: new Date().toISOString()
   });
-
-  document.getElementById("message").value = "";
-  btn.innerText = "Send";
-  sending = false;
+  message.value="";
 }
 
-// 📡 REAL-TIME MESSAGES
-db.collection("messages")
-  .orderBy("date")
-  .limit(50)
-  .onSnapshot(snapshot => {
+// LOAD + CHART
+function loadMessages(user){
+  db.collection("messages").orderBy("date")
+  .onSnapshot(snapshot=>{
+    let html="";
+    moodData=[];
 
-    let html = "";
-    let happy = 0;
+    snapshot.forEach(doc=>{
+      const m=doc.data();
+      moodData.push(m.mood);
 
-    snapshot.forEach(doc => {
-      const msg = doc.data();
-      if (msg.mood.includes("Happy")) happy++;
+      const side = m.user===user.email?"me":"her";
 
-      const side = msg.user === "Me" ? "me" : "her";
-
-      html += `
-        <div class="message ${side}">
-          <b>${msg.user} • ${msg.mood}</b>
-          <p>${msg.text}</p>
-          <small>${new Date(msg.date).toLocaleTimeString()}</small>
-        </div>
-      `;
+      html+=`<div class="message ${side}">
+        <p>${m.text}</p>
+      </div>`;
     });
 
-    document.getElementById("messages").innerHTML = html;
-
-    // auto-scroll
-    const box = document.getElementById("messages");
-    box.scrollTop = box.scrollHeight;
-
-    // health score
-    const total = snapshot.size;
-    const score = total ? Math.round((happy / total) * 100) : 0;
-    document.getElementById("health").innerText = score + "%";
+    messages.innerHTML=html;
+    drawChart();
   });
+}
+
+// 📈 CHART
+function drawChart(){
+  new Chart(document.getElementById("chart"), {
+    type: "line",
+    data: {
+      labels: moodData.map((_,i)=>i+1),
+      datasets: [{
+        label: "Mood Trend",
+        data: moodData
+      }]
+    }
+  });
+}
+
+// ❤️ WEEKLY SUMMARY
+function generateSummary(){
+  const avg = moodData.reduce((a,b)=>a+b,0)/moodData.length;
+
+  let text="";
+
+  if(avg > 3) text="Things are going well ❤️";
+  else if(avg > 2) text="There’s balance, but room to improve 🤝";
+  else text="There are some struggles, communication is needed 💬";
+
+  summary.innerText = text;
+}
+
+// 🤖 AI COACH
+async function askAI(){
+  const text = aiInput.value;
+
+  const res = await fetch("/api/ai", {
+    method: "POST",
+    body: JSON.stringify({
+      text: `Give relationship advice for this situation: ${text}`
+    })
+  });
+
+  const data = await res.json();
+  aiResponse.innerText = data.reply;
+}
 </script>
 
 </body>
