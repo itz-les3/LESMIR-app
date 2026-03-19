@@ -9,9 +9,6 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
 body {
   font-family: Arial;
@@ -19,20 +16,39 @@ body {
   padding: 20px;
 }
 
-.container { max-width: 700px; margin: auto; }
+.container {
+  max-width: 600px;
+  margin: auto;
+}
 
 input, textarea, select {
-  width: 100%; padding: 10px; margin: 5px 0; border-radius: 10px;
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 10px;
 }
 
 button {
-  padding: 10px; border-radius: 10px;
-  background: #ff4d6d; color: white; border: none;
+  padding: 10px;
+  border-radius: 10px;
+  background: #ff4d6d;
+  color: white;
+  border: none;
+  cursor: pointer;
 }
 
-#messages { max-height: 250px; overflow-y: auto; }
+#messages {
+  max-height: 250px;
+  overflow-y: auto;
+}
 
-.message { max-width: 70%; padding: 10px; margin: 5px; border-radius: 15px; }
+.message {
+  max-width: 70%;
+  padding: 10px;
+  margin: 5px;
+  border-radius: 15px;
+}
+
 .me { background: #ff4d6d; color: white; margin-left: auto; }
 .her { background: white; margin-right: auto; }
 
@@ -55,8 +71,8 @@ button {
 <div id="login">
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
-  <button onclick="login()">Login</button>
-  <button onclick="signup()">Sign Up</button>
+  <button onclick="loginUser()">Login</button>
+  <button onclick="signupUser()">Sign Up</button>
 </div>
 
 <!-- APP -->
@@ -71,39 +87,18 @@ button {
   <option value="4">Happy 😊</option>
 </select>
 
-<textarea id="message"></textarea>
+<textarea id="message" placeholder="Say something..."></textarea>
 <button onclick="sendMessage()">Send</button>
 
 <div id="messages"></div>
 
-<!-- 📈 MOOD CHART -->
-<div class="section">
-  <h3>📈 Mood Trend</h3>
-  <canvas id="chart"></canvas>
-</div>
-
-<!-- ❤️ WEEKLY SUMMARY -->
-<div class="section">
-  <h3>❤️ Weekly Review</h3>
-  <button onclick="generateSummary()">Generate Summary</button>
-  <p id="summary"></p>
-</div>
-
-<!-- 🤖 AI COACH -->
-<div class="section">
-  <h3>🤖 Relationship Coach</h3>
-  <textarea id="aiInput" placeholder="Describe the issue..."></textarea>
-  <button onclick="askAI()">Get Advice</button>
-  <p id="aiResponse"></p>
-</div>
-
-<button onclick="logout()">Logout</button>
+<button onclick="logoutUser()">Logout</button>
 
 </div>
 </div>
 
 <script>
-// Firebase
+// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyByPtGUddTNWVsEByuUlxEVfsSjOrSPOW8",
   authDomain: "lesmir-app.firebaseapp.com",
@@ -114,99 +109,93 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-let moodData = [];
+// 🔐 SIGN UP
+function signupUser() {
+  const emailVal = document.getElementById("email").value;
+  const passVal = document.getElementById("password").value;
 
-// AUTH
-function signup(){ auth.createUserWithEmailAndPassword(email.value, password.value); }
-function login(){ auth.signInWithEmailAndPassword(email.value, password.value); }
-function logout(){ auth.signOut(); }
+  auth.createUserWithEmailAndPassword(emailVal, passVal)
+    .then(() => alert("Account created ✅"))
+    .catch(err => alert(err.message));
+}
 
-auth.onAuthStateChanged(user=>{
-  if(user){
-    login.style.display="none";
-    app.style.display="block";
-    welcome.innerText=user.email;
+// 🔐 LOGIN
+function loginUser() {
+  const emailVal = document.getElementById("email").value;
+  const passVal = document.getElementById("password").value;
+
+  auth.signInWithEmailAndPassword(emailVal, passVal)
+    .then(() => alert("Login successful ✅"))
+    .catch(err => alert(err.message));
+}
+
+// 🔐 LOGOUT
+function logoutUser() {
+  auth.signOut();
+}
+
+// 👀 AUTH STATE (FIXED)
+auth.onAuthStateChanged(user => {
+  console.log("AUTH STATE:", user); // debug
+
+  const loginDiv = document.getElementById("login");
+  const appDiv = document.getElementById("app");
+
+  if (user) {
+    loginDiv.style.display = "none";
+    appDiv.style.display = "block";
+
+    document.getElementById("welcome").innerText =
+      "Logged in as: " + user.email;
+
     loadMessages(user);
+
   } else {
-    login.style.display="block";
-    app.style.display="none";
+    loginDiv.style.display = "block";
+    appDiv.style.display = "none";
   }
 });
 
-// SEND MESSAGE
-function sendMessage(){
+// 📩 SEND MESSAGE
+function sendMessage() {
+  const text = document.getElementById("message").value;
+
+  if (!text.trim()) return;
+
   db.collection("messages").add({
-    text: message.value,
-    mood: Number(mood.value),
+    text,
+    mood: document.getElementById("mood").value,
     user: auth.currentUser.email,
     date: new Date().toISOString()
   });
-  message.value="";
+
+  document.getElementById("message").value = "";
 }
 
-// LOAD + CHART
-function loadMessages(user){
-  db.collection("messages").orderBy("date")
-  .onSnapshot(snapshot=>{
-    let html="";
-    moodData=[];
+// 📡 LOAD MESSAGES
+function loadMessages(user) {
+  db.collection("messages")
+    .orderBy("date")
+    .onSnapshot(snapshot => {
 
-    snapshot.forEach(doc=>{
-      const m=doc.data();
-      moodData.push(m.mood);
+      let html = "";
 
-      const side = m.user===user.email?"me":"her";
+      snapshot.forEach(doc => {
+        const msg = doc.data();
+        const side = msg.user === user.email ? "me" : "her";
 
-      html+=`<div class="message ${side}">
-        <p>${m.text}</p>
-      </div>`;
+        html += `
+          <div class="message ${side}">
+            <p>${msg.text}</p>
+          </div>
+        `;
+      });
+
+      document.getElementById("messages").innerHTML = html;
+
+      const box = document.getElementById("messages");
+      box.scrollTop = box.scrollHeight;
     });
-
-    messages.innerHTML=html;
-    drawChart();
-  });
-}
-
-// 📈 CHART
-function drawChart(){
-  new Chart(document.getElementById("chart"), {
-    type: "line",
-    data: {
-      labels: moodData.map((_,i)=>i+1),
-      datasets: [{
-        label: "Mood Trend",
-        data: moodData
-      }]
-    }
-  });
-}
-
-// ❤️ WEEKLY SUMMARY
-function generateSummary(){
-  const avg = moodData.reduce((a,b)=>a+b,0)/moodData.length;
-
-  let text="";
-
-  if(avg > 3) text="Things are going well ❤️";
-  else if(avg > 2) text="There’s balance, but room to improve 🤝";
-  else text="There are some struggles, communication is needed 💬";
-
-  summary.innerText = text;
-}
-
-// 🤖 AI COACH
-async function askAI(){
-  const text = aiInput.value;
-
-  const res = await fetch("/api/ai", {
-    method: "POST",
-    body: JSON.stringify({
-      text: `Give relationship advice for this situation: ${text}`
-    })
-  });
-
-  const data = await res.json();
-  aiResponse.innerText = data.reply;
 }
 </script>
 
